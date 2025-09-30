@@ -1,3 +1,4 @@
+//generic.repository.ts
 export class GenericRepository<T extends {id:string}>{
     protected items : T[]=[];
   findAll():T[]{
