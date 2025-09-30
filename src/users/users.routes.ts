@@ -1,3 +1,4 @@
+//users.controller.ts
 import { Router } from "express";
 import { getProfile, updateProfile, createCoach } from "./users.controller";
 import { authenticateToken, authorizeRoles } from "../shared/middlewares";

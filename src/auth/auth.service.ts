@@ -1,45 +1,32 @@
-import { User } from "../shared/types";
-import { GenericRepository } from "../shared/generic.repository";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { v4 as uuid } from "uuid";
 
-const SECRET = "JWT_SECRET_KEY";
+const prisma = new PrismaClient();
+const SECRET = process.env.JWT_SECRET || "JWT_SECRET_KEY";
 
-class AuthService extends GenericRepository<User> {
-  constructor() {
-    super();
-    const now = new Date();
-    this.create({
-      id: uuid(),
-      name: "Admin",
-      email: "admin@no.com",
-      password: bcrypt.hashSync("admin123", 10),
-      role: "ADMIN",  
-     createdAt: now,
-      updatedAt: now,
+class AuthService {
+  async register(data: { name: string; email: string; password: string }) {
+    const hashed = bcrypt.hashSync(data.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashed,
+        role: "STUDENT",
+      },
     });
+
+    return user;
   }
 
-  register(data: Partial<User>) {
-    const now = new Date();
-    const user: User = {
-      id: uuid(),
-      name: data.name!,
-      email: data.email!,
-      password: bcrypt.hashSync(data.password!, 10),
-      role: "STUDENT",
-      createdAt: now,
-      updatedAt: now,
-    };
-    return this.create(user);
-  }
-
-  login(email: string, password: string) {
-    const user = this.items.find(u => u.email === email);
+  async login(email: string, password: string) {
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("Invalid credentials");
     if (!bcrypt.compareSync(password, user.password)) throw new Error("Invalid credentials");
-    const token = jwt.sign({ ...user, password: undefined }, SECRET, { expiresIn: "1h" });
+
+    const token = jwt.sign({ id: user.id, role: user.role }, SECRET, { expiresIn: "1h" });
     return { token, user };
   }
 }
